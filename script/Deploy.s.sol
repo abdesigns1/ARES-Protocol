@@ -7,8 +7,7 @@ import "../src/modules/TimelockEngine.sol";
 import "../src/modules/RewardDistributor.sol";
 import "../src/modules/GovernanceGuard.sol";
 
-/// @notice Deployment script for the ARES Protocol treasury system.
-///         Run with: forge script script/Deploy.s.sol --broadcast
+
 contract Deploy is Script {
     function run() external {
         // Load signers from environment variables
@@ -22,9 +21,7 @@ contract Deploy is Script {
 
         vm.startBroadcast();
 
-        // Step 1: Deploy a temporary timelock (governance = deployer)
-        // In production, use CREATE2 to predetermine ProposalManager address
-        // and deploy timelock pointing directly to it.
+       
         TimelockEngine timelock = new TimelockEngine(msg.sender);
         console.log("TimelockEngine deployed at:", address(timelock));
 
@@ -40,7 +37,7 @@ contract Deploy is Script {
 
         ProposalManager proposalManager = new ProposalManager(
             signers,
-            2, // 2-of-3 threshold
+            2,
             address(timelock),
             address(guard)
         );

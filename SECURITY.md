@@ -22,7 +22,7 @@ The domain separator includes the chain ID and the contract address. This means 
 **How we prevent it:**
 TimelockEngine has a manual reentrancy guard using a `uint256 _lock` variable. When `execute()` starts, it sets `_lock = 2`. Any re-entrant call will find `_lock == 2` and revert. After execution finishes, `_lock` is reset to 1.
 
-More importantly, we delete the operation from the queue *before* making the external call. This is the "checks-effects-interactions" pattern. Even if the reentrancy guard weren't there, the operation ID would already be gone, so a re-entrant execute would fail with "not queued."
+More importantly, we delete the operation from the queue _before_ making the external call. This is the "checks-effects-interactions" pattern. Even if the reentrancy guard weren't there, the operation ID would already be gone, so a re-entrant execute would fail with "not queued."
 
 **Remaining risk:** The external call itself (`target.call`) can execute arbitrary code. We can't prevent the target from doing bad things — we can only prevent it from affecting our own state.
 
@@ -47,6 +47,7 @@ Additionally, GovernanceGuard enforces a 1-hour cooldown between proposals from 
 
 **How we prevent it:**
 GovernanceGuard enforces two limits:
+
 - **Single transaction cap:** No single transfer can exceed 10% of the current treasury balance (1000 basis points out of 10,000).
 - **Daily drain limit:** Total outflows across all proposals are tracked and capped at a configurable daily maximum. The window resets every 24 hours.
 
@@ -61,7 +62,7 @@ If an attacker somehow controlled enough signers to pass a malicious proposal, t
 **The threat:** A contributor claims their reward, then claims again using the same proof to receive double payout.
 
 **How we prevent it:**
-RewardDistributor maintains a `mapping(uint256 epoch => mapping(address => bool))` that marks each address as claimed per epoch. The claim function checks this flag first and reverts if already set. The flag is set *before* the token transfer, so even if the token had a malicious hook, the claim would already be marked.
+RewardDistributor maintains a `mapping(uint256 epoch => mapping(address => bool))` that marks each address as claimed per epoch. The claim function checks this flag first and reverts if already set. The flag is set _before_ the token transfer, so even if the token had a malicious hook, the claim would already be marked.
 
 ---
 
@@ -102,11 +103,11 @@ Additionally, any signer can cancel a pending or approved proposal. So legitimat
 
 ---
 
-## Summary of Remaining Risks
+<!-- ## Summary of Remaining Risks
 
 | Risk | Severity | Notes |
 |------|----------|-------|
 | Signer key compromise | High | Mitigated by threshold (2-of-3), but key hygiene is critical |
 | Off-chain Merkle tree error | Medium | Operational risk, needs careful tooling |
 | Governance capture (long term) | Medium | If token voting is added later, flash loan protections must be added |
-| Timestamp manipulation | Low | 2-day delay makes this impractical |
+| Timestamp manipulation | Low | 2-day delay makes this impractical | -->

@@ -1,33 +1,32 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title IProposalManager
-/// @notice Interface for creating and managing treasury proposals
+
 interface IProposalManager {
-    // The different stages a proposal can be in
+
     enum ProposalState {
-        Pending,    // just created, waiting for approvals
-        Approved,   // enough signatures collected
-        Queued,     // sitting in the timelock queue
-        Executed,   // successfully ran
-        Cancelled   // cancelled or expired
+        Pending,    
+        Approved,   
+        Queued,     
+        Executed,   
+        Cancelled   
     }
 
-    // What kind of action a proposal can do
+
     enum ActionType {
-        Transfer,   // send tokens somewhere
-        Call,       // call an external contract
-        Upgrade     // upgrade a contract
+        Transfer,  
+        Call,       
+        Upgrade     
     }
 
-    // The full proposal data structure
+
     struct Proposal {
         uint256 id;
         ActionType actionType;
-        address token;          // used for Transfer actions
-        address target;         // recipient or contract to call
-        uint256 amount;         // used for Transfer actions
-        bytes callData;         // used for Call/Upgrade actions
+        address token;        
+        address target;        
+        uint256 amount;       
+        bytes callData;        
         uint256 createdAt;
         uint256 approvalCount;
         ProposalState state;

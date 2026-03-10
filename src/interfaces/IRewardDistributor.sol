@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title IRewardDistributor
-/// @notice Interface for the Merkle-based contributor reward system
+
 interface IRewardDistributor {
     event RootUpdated(bytes32 indexed newRoot, uint256 indexed epoch);
     event RewardClaimed(address indexed user, uint256 amount, uint256 indexed epoch);
