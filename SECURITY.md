@@ -1,5 +1,22 @@
 # ARES Protocol — Security Analysis
 
+## Signature Scheme Justification
+
+The authorization layer uses **EIP-712 typed structured data signing**. This was chosen deliberately over simpler alternatives for the following reasons:
+
+**Why not plain `keccak256` hashing (EIP-191 personal_sign)?**
+Simple message hashing like `keccak256(abi.encodePacked(proposalId, nonce))` is vulnerable to hash collision attacks and gives signers no visibility into what they are actually signing. A signer's wallet would show them a raw hex string, they have no way to verify it's an approval for proposal #5 and not something else entirely.
+
+**Why not EIP-191 (`eth_sign`)?**
+EIP-191 adds a prefix (`\x19Ethereum Signed Message`) which prevents some collision attacks, but it still doesn't give the user structured, readable data. It also lacks domain separation, meaning a valid signature on one contract could potentially be replayed on another contract that uses the same message format.
+
+**Why EIP-712?**
+EIP-712 solves all of these problems. The domain separator binds the signature to a specific contract address, chain ID, and protocol name — so cross-chain and cross-contract replay is impossible by construction. The typed struct (`ApproveProposal(uint256 proposalId, uint256 nonce, uint256 deadline)`) is displayed to the signer in a human-readable format in their wallet, so they can see exactly what they are approving. This is the same standard used by Uniswap, OpenSea, and most production DeFi protocols for exactly these reasons.
+
+We additionally include a **deadline** field in the signed struct. This means a signature that is never submitted on-chain will eventually expire, preventing indefinitely valid stale approvals from accumulating.
+
+---
+
 ## Major Attack Surfaces
 
 ### 1. Signature Replay Attacks
@@ -103,11 +120,11 @@ Additionally, any signer can cancel a pending or approved proposal. So legitimat
 
 ---
 
-<!-- ## Summary of Remaining Risks
+## Summary of Remaining Risks
 
-| Risk | Severity | Notes |
-|------|----------|-------|
-| Signer key compromise | High | Mitigated by threshold (2-of-3), but key hygiene is critical |
-| Off-chain Merkle tree error | Medium | Operational risk, needs careful tooling |
-| Governance capture (long term) | Medium | If token voting is added later, flash loan protections must be added |
-| Timestamp manipulation | Low | 2-day delay makes this impractical | -->
+| Risk                           | Severity | Notes                                                                |
+| ------------------------------ | -------- | -------------------------------------------------------------------- |
+| Signer key compromise          | High     | Mitigated by threshold (2-of-3), but key hygiene is critical         |
+| Off-chain Merkle tree error    | Medium   | Operational risk, needs careful tooling                              |
+| Governance capture (long term) | Medium   | If token voting is added later, flash loan protections must be added |
+| Timestamp manipulation         | Low      | 2-day delay makes this impractical                                   |

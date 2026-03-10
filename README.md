@@ -2,6 +2,18 @@
 
 A modular, secure treasury management system for decentralized protocols.
 
+## Originality Statement
+
+This system was designed from scratch for the ARES Protocol. While it uses well-established cryptographic patterns (EIP-712, Merkle proofs, timelocks), no existing contract was copied or modified. Key departures from known implementations include:
+
+- **Per-signer on-chain nonces** instead of per-transaction nonces as used in Gnosis Safe. This means each signer's replay protection is independent — one signer's nonce increment does not affect another's.
+- **Multi-epoch Merkle roots with persistent claim history** — most standard distributors (e.g. Uniswap's) overwrite the root on every update, making old claims impossible. Ours keeps every epoch's root so historical claims always remain valid.
+- **GovernanceGuard as a standalone enforcer module** — in Compound and Aave, rate limiting and access control are baked into the governor itself. We extracted this into a separate contract so it can be audited, replaced, or upgraded independently without touching the proposal logic.
+- **Grace period expiry on timelock operations** — standard OpenZeppelin TimelockController has no upper bound on when an operation can execute after the delay passes. We add a 7-day grace period window, after which an operation expires and must be re-proposed.
+- **Proposal cooldown per signer** — not present in any major governor implementation. Added specifically to defend against proposal griefing attacks.
+
+---
+
 ## Quick Start
 
 ```bash
@@ -68,7 +80,6 @@ A signer calls `ProposalManager.propose(actionType, token, target, amount, callD
 The proposal is stored on-chain with state `Pending`. A `ProposalCreated` event is emitted.
 
 Preconditions:
-
 - Caller must be an authorized signer
 - Caller must not be in the proposal cooldown window (1 hour since last proposal)
 - Target address must not be zero
@@ -83,13 +94,11 @@ The proposal gets a unique auto-incrementing `id`.
 Each authorized signer who wants to approve calls `ProposalManager.approve(proposalId, signature)`.
 
 The signature must be an EIP-712 structured signature over:
-
 ```
 ApproveProposal(uint256 proposalId, uint256 nonce, uint256 deadline)
 ```
 
 The contract:
-
 1. Checks the signer is authorized
 2. Checks the signer has not already approved this proposal
 3. Reconstructs the digest using the signer's current nonce
@@ -108,7 +117,6 @@ Signers must submit their own signature (the caller must be the signer). Off-cha
 Once a proposal reaches `Approved` state, anyone can call `ProposalManager.queue(proposalId)`.
 
 This:
-
 1. Computes the operation ID: `keccak256(target, value, calldata, proposalId)`
 2. Calls `TimelockEngine.queue(opId)` which records `readyTime = block.timestamp + 2 days`
 3. Advances proposal state to `Queued`
@@ -123,7 +131,6 @@ The operation ID uniquely identifies this specific execution — the same propos
 After the timelock delay has passed (minimum 2 days, maximum 2 days + 7 day grace period), anyone can call `ProposalManager.execute(proposalId)`.
 
 This:
-
 1. Checks proposal is in `Queued` state
 2. For Transfer proposals: checks single-tx drain limit and daily drain limit via GovernanceGuard
 3. Advances state to `Executed`
@@ -156,7 +163,6 @@ Governance calls `RewardDistributor.updateRoot(merkleRoot)`. This increments the
 A contributor calls `RewardDistributor.claim(epoch, amount, proof)`.
 
 The contract:
-
 1. Checks the epoch is valid
 2. Checks the caller has not already claimed for this epoch
 3. Computes the leaf: `keccak256(keccak256(abi.encodePacked(user, amount, epoch)))`
@@ -168,18 +174,16 @@ The contract:
 
 ## Attack Prevention Summary
 
-| Attack                 | Prevention                                                    |
-| ---------------------- | ------------------------------------------------------------- |
-| Reentrancy             | NonReentrant modifier + delete-before-call pattern            |
-| Signature replay       | Per-signer nonces                                             |
-| Signature malleability | High-s value check in SignatureLib                            |
-| Cross-chain replay     | chainId in EIP-712 domain separator                           |
-| Domain collision       | Contract address in domain separator                          |
-| Double claim           | Per-epoch claimed bitmap                                      |
-| Unauthorized execution | Only ProposalManager can call TimelockEngine                  |
-| Timelock bypass        | Delay enforced by block.timestamp, checked before execution   |
-| Large treasury drain   | 10% single-tx cap + daily limit in GovernanceGuard            |
-| Proposal griefing      | 1-hour cooldown per proposer                                  |
-| Proposal replay        | Operation ID derived from content; duplicate queuing rejected |
-
-This system was designed from scratch. While it borrows well-established patterns (EIP-712, Merkle proofs, timelocks), no existing contract was copied or modified. Key departures include: per-signer on-chain nonces instead of per-transaction nonces, multi-epoch Merkle roots with persistent claim history, a standalone GovernanceGuard rate-limiter, and a unified grace period + drain cap not found in standard timelock implementations.
+| Attack | Prevention |
+|--------|-----------|
+| Reentrancy | NonReentrant modifier + delete-before-call pattern |
+| Signature replay | Per-signer nonces |
+| Signature malleability | High-s value check in SignatureLib |
+| Cross-chain replay | chainId in EIP-712 domain separator |
+| Domain collision | Contract address in domain separator |
+| Double claim | Per-epoch claimed bitmap |
+| Unauthorized execution | Only ProposalManager can call TimelockEngine |
+| Timelock bypass | Delay enforced by block.timestamp, checked before execution |
+| Large treasury drain | 10% single-tx cap + daily limit in GovernanceGuard |
+| Proposal griefing | 1-hour cooldown per proposer |
+| Proposal replay | Operation ID derived from content; duplicate queuing rejected |
