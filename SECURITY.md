@@ -120,11 +120,4 @@ Additionally, any signer can cancel a pending or approved proposal. So legitimat
 
 ---
 
-## Summary of Remaining Risks
-
-| Risk                           | Severity | Notes                                                                |
-| ------------------------------ | -------- | -------------------------------------------------------------------- |
-| Signer key compromise          | High     | Mitigated by threshold (2-of-3), but key hygiene is critical         |
-| Off-chain Merkle tree error    | Medium   | Operational risk, needs careful tooling                              |
-| Governance capture (long term) | Medium   | If token voting is added later, flash loan protections must be added |
-| Timestamp manipulation         | Low      | 2-day delay makes this impractical                                   |
+                          |
